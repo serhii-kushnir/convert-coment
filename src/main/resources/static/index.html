@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Word Formatter</title>
+
+    <style>
+
+        body{
+            font-family: Arial;
+            background:#1e1e1e;
+            color:white;
+            padding:40px;
+        }
+
+        h1{
+            text-align:center;
+        }
+
+        textarea{
+            width:100%;
+            height:200px;
+            margin-top:10px;
+            padding:15px;
+            font-size:16px;
+            border-radius:10px;
+            border:none;
+            resize:none;
+        }
+
+        .result{
+            margin-top:30px;
+        }
+
+        .copied{
+            margin-top:10px;
+            color:#00ff99;
+            font-size:18px;
+        }
+
+        .buttons{
+            margin-top:20px;
+            display:flex;
+            gap:15px;
+        }
+
+        button{
+            padding:12px 20px;
+            border:none;
+            border-radius:10px;
+            cursor:pointer;
+            font-size:16px;
+        }
+
+    </style>
+</head>
+<body>
+
+<h1>Word Formatter</h1>
+
+<label>Встав список:</label>
+
+<textarea id="inputArea"
+          placeholder="Встав слова сюди..."></textarea>
+
+<div class="buttons">
+
+    <button onclick="clearAll()">
+        Очистити
+    </button>
+
+</div>
+
+<div class="result">
+
+    <h2>Результат:</h2>
+
+    <textarea id="resultArea"
+              readonly></textarea>
+
+    <div class="copied" id="status"></div>
+
+</div>
+
+<script>
+
+    const inputArea =
+        document.getElementById("inputArea");
+
+    const resultArea =
+        document.getElementById("resultArea");
+
+    const status =
+        document.getElementById("status");
+
+    function convertText() {
+
+        let text = inputArea.value;
+
+        let result = text
+            .split(/\r?\n/)
+            .map(item => item.trim())
+            .filter(item => item !== "")
+            .join(",");
+
+        resultArea.value = result;
+
+        // Автоматичне копіювання
+        navigator.clipboard.writeText(result);
+
+        status.innerText =
+            "Автоматично скопійовано!";
+
+    }
+
+    function clearAll(){
+
+        inputArea.value = "";
+        resultArea.value = "";
+        status.innerText = "";
+
+    }
+
+    // Автоматично при вставці або вводі
+    inputArea.addEventListener("input", convertText);
+
+</script>
+
+</body>
+</html>
