@@ -16,20 +16,26 @@ public class Main extends JFrame {
     public Main() {
 
         setTitle("Word Formatter PRO");
-        setSize(700, 500);
+        setSize(780, 600);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        // INPUT (for debug / view only)
+        // =========================
+        // INPUT
+        // =========================
         inputArea = new JTextArea();
         inputArea.setFont(new Font("Arial", Font.PLAIN, 16));
 
+        // =========================
         // OUTPUT
+        // =========================
         outputArea = new JTextArea();
         outputArea.setFont(new Font("Arial", Font.PLAIN, 16));
         outputArea.setEditable(false);
 
-        // TOGGLE
+        // =========================
+        // TOGGLE HOTKEY
+        // =========================
         JToggleButton toggle = new JToggleButton("ON");
         toggle.setSelected(true);
 
@@ -38,30 +44,98 @@ public class Main extends JFrame {
             toggle.setText(enabled ? "ON" : "OFF");
         });
 
-        // BUTTON (backup)
-        JButton btn = new JButton("Convert");
-        btn.addActionListener(e -> processClipboard());
+        // =========================
+        // CONVERT BUTTON
+        // =========================
+        JButton convertBtn = new JButton("Convert");
+        convertBtn.addActionListener(e -> processClipboard());
 
-        JPanel top = new JPanel(new BorderLayout());
-        top.add(toggle, BorderLayout.WEST);
-        top.add(btn, BorderLayout.EAST);
+        // =========================
+        // CLEAR BUTTON 🔥
+        // =========================
+        JButton clearBtn = new JButton("Clear");
 
+        clearBtn.addActionListener(e -> {
+            inputArea.setText("");
+            outputArea.setText("");
+        });
+
+        // =========================
+        // ALWAYS ON TOP
+        // =========================
+        JToggleButton topBtn = new JToggleButton("Top OFF");
+        topBtn.setSelected(true);
+
+        topBtn.addActionListener(e -> {
+
+            boolean state = topBtn.isSelected();
+
+            setAlwaysOnTop(state);
+
+            topBtn.setText(state ? "Top ON" : "Top OFF");
+        });
+
+        // =========================
+        // TOP PANEL
+        // =========================
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+        top.add(toggle);
+        top.add(convertBtn);
+        top.add(clearBtn);
+        top.add(topBtn);
+
+        // =========================
+        // SPLIT
+        // =========================
         JSplitPane split = new JSplitPane(
                 JSplitPane.VERTICAL_SPLIT,
                 new JScrollPane(inputArea),
                 new JScrollPane(outputArea)
         );
 
-        split.setDividerLocation(200);
+        split.setDividerLocation(300);
 
+        // =========================
+        // HINT PANEL
+        // =========================
+        JPanel hintPanel = new JPanel();
+        hintPanel.setLayout(new BoxLayout(hintPanel, BoxLayout.Y_AXIS));
+        hintPanel.setBackground(new Color(25, 25, 25));
+        hintPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JLabel title = new JLabel("💡 Hotkeys & Tips:");
+        title.setForeground(Color.WHITE);
+        title.setFont(new Font("Arial", Font.BOLD, 14));
+
+        JLabel h1 = new JLabel("CTRL + SHIFT + V → Convert clipboard");
+        JLabel h2 = new JLabel("ALT + X → Quick convert");
+        JLabel h3 = new JLabel("Clear → очистити поля");
+        JLabel h4 = new JLabel("Top ON → поверх всіх вікон");
+
+        for (JLabel l : new JLabel[]{h1, h2, h3, h4}) {
+            l.setForeground(new Color(180, 180, 180));
+        }
+
+        hintPanel.add(title);
+        hintPanel.add(Box.createVerticalStrut(5));
+        hintPanel.add(h1);
+        hintPanel.add(h2);
+        hintPanel.add(h3);
+        hintPanel.add(h4);
+
+        // =========================
+        // ADD UI
+        // =========================
         add(top, BorderLayout.NORTH);
         add(split, BorderLayout.CENTER);
+        add(hintPanel, BorderLayout.SOUTH);
 
         registerHotkey();
     }
 
     // =========================
-    // HOTKEY: CTRL + SHIFT + V
+    // HOTKEYS
     // =========================
     private void registerHotkey() {
 
@@ -74,8 +148,14 @@ public class Main extends JFrame {
 
                         boolean ctrl = (e.getModifiersEx() & KeyEvent.CTRL_DOWN_MASK) != 0;
                         boolean shift = (e.getModifiersEx() & KeyEvent.SHIFT_DOWN_MASK) != 0;
+                        boolean alt = (e.getModifiersEx() & KeyEvent.ALT_DOWN_MASK) != 0;
 
                         if (ctrl && shift && e.getKeyCode() == KeyEvent.VK_V) {
+                            processClipboard();
+                            return true;
+                        }
+
+                        if (alt && e.getKeyCode() == KeyEvent.VK_X) {
                             processClipboard();
                             return true;
                         }
@@ -86,7 +166,7 @@ public class Main extends JFrame {
     }
 
     // =========================
-    // CORE: clipboard → convert → clipboard
+    // CORE LOGIC
     // =========================
     private void processClipboard() {
 
@@ -101,7 +181,6 @@ public class Main extends JFrame {
 
             if (text == null || text.isBlank()) return;
 
-            // show in input field (optional)
             inputArea.setText(text);
 
             String result = Arrays.stream(text.split("\\R"))
@@ -111,7 +190,6 @@ public class Main extends JFrame {
 
             outputArea.setText(result);
 
-            // overwrite clipboard
             clipboard.setContents(new StringSelection(result), null);
 
         } catch (Exception ignored) {}
