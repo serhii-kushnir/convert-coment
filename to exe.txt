@@ -1,0 +1,7 @@
+jpackage ^
+ --name WordFormatterPRO ^
+ --input . ^
+ --main-jar convert-coment-1.0-SNAPSHOT.jar ^
+ --main-class org.cc.Main ^
+ --type app-image ^
+ --dest dist
