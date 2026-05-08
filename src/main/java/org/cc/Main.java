@@ -3,15 +3,15 @@ package org.cc;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.datatransfer.*;
+import java.awt.event.KeyEvent;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
 public class Main extends JFrame {
 
+    private final JTextArea inputArea;
     private final JTextArea outputArea;
     private boolean enabled = true;
-
-    private String lastClipboard = "";
 
     public Main() {
 
@@ -20,97 +20,101 @@ public class Main extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        // OUTPUT AREA
+        // INPUT (for debug / view only)
+        inputArea = new JTextArea();
+        inputArea.setFont(new Font("Arial", Font.PLAIN, 16));
+
+        // OUTPUT
         outputArea = new JTextArea();
         outputArea.setFont(new Font("Arial", Font.PLAIN, 16));
         outputArea.setEditable(false);
 
-        // TOGGLE BUTTON
-        JToggleButton toggleButton = new JToggleButton("ON");
-        toggleButton.setSelected(true);
+        // TOGGLE
+        JToggleButton toggle = new JToggleButton("ON");
+        toggle.setSelected(true);
 
-        toggleButton.addActionListener(e -> {
-            enabled = toggleButton.isSelected();
-            toggleButton.setText(enabled ? "ON" : "OFF");
+        toggle.addActionListener(e -> {
+            enabled = toggle.isSelected();
+            toggle.setText(enabled ? "ON" : "OFF");
         });
 
-        // LAYOUT
-        add(new JScrollPane(outputArea), BorderLayout.CENTER);
-        add(toggleButton, BorderLayout.SOUTH);
+        // BUTTON (backup)
+        JButton btn = new JButton("Convert");
+        btn.addActionListener(e -> processClipboard());
 
-        // START BACKGROUND CLIPBOARD WATCHER
-        startClipboardWatcher();
+        JPanel top = new JPanel(new BorderLayout());
+        top.add(toggle, BorderLayout.WEST);
+        top.add(btn, BorderLayout.EAST);
+
+        JSplitPane split = new JSplitPane(
+                JSplitPane.VERTICAL_SPLIT,
+                new JScrollPane(inputArea),
+                new JScrollPane(outputArea)
+        );
+
+        split.setDividerLocation(200);
+
+        add(top, BorderLayout.NORTH);
+        add(split, BorderLayout.CENTER);
+
+        registerHotkey();
     }
 
     // =========================
-    // CLIPBOARD WATCHER (BACKGROUND)
+    // HOTKEY: CTRL + SHIFT + V
     // =========================
-    private void startClipboardWatcher() {
+    private void registerHotkey() {
 
-        Thread watcher = new Thread(() -> {
+        KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                .addKeyEventDispatcher(e -> {
 
-            while (true) {
+                    if (!enabled) return false;
 
-                if (!enabled) {
-                    sleep(300);
-                    continue;
-                }
+                    if (e.getID() == KeyEvent.KEY_PRESSED) {
 
-                try {
-                    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                        boolean ctrl = (e.getModifiersEx() & KeyEvent.CTRL_DOWN_MASK) != 0;
+                        boolean shift = (e.getModifiersEx() & KeyEvent.SHIFT_DOWN_MASK) != 0;
 
-                    if (!clipboard.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
-                        sleep(300);
-                        continue;
+                        if (ctrl && shift && e.getKeyCode() == KeyEvent.VK_V) {
+                            processClipboard();
+                            return true;
+                        }
                     }
 
-                    String data = (String) clipboard.getData(DataFlavor.stringFlavor);
-
-                    if (data == null || data.equals(lastClipboard)) {
-                        sleep(300);
-                        continue;
-                    }
-
-                    lastClipboard = data;
-
-                    String converted = convert(data);
-
-                    // update clipboard
-                    clipboard.setContents(new StringSelection(converted), null);
-
-                    // update UI
-                    SwingUtilities.invokeLater(() -> {
-                        outputArea.setText(converted);
-                    });
-
-                } catch (Exception ignored) {}
-
-                sleep(300);
-            }
-        });
-
-        watcher.setDaemon(true);
-        watcher.start();
+                    return false;
+                });
     }
 
     // =========================
-    // CONVERT LOGIC
+    // CORE: clipboard → convert → clipboard
     // =========================
-    private String convert(String text) {
+    private void processClipboard() {
 
-        return Arrays.stream(text.split("\\R"))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .collect(Collectors.joining(","));
-    }
+        if (!enabled) return;
 
-    // =========================
-    // SLEEP HELPER
-    // =========================
-    private void sleep(int ms) {
         try {
-            Thread.sleep(ms);
-        } catch (InterruptedException ignored) {}
+            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+
+            if (!clipboard.isDataFlavorAvailable(DataFlavor.stringFlavor)) return;
+
+            String text = (String) clipboard.getData(DataFlavor.stringFlavor);
+
+            if (text == null || text.isBlank()) return;
+
+            // show in input field (optional)
+            inputArea.setText(text);
+
+            String result = Arrays.stream(text.split("\\R"))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .collect(Collectors.joining(","));
+
+            outputArea.setText(result);
+
+            // overwrite clipboard
+            clipboard.setContents(new StringSelection(result), null);
+
+        } catch (Exception ignored) {}
     }
 
     // =========================
